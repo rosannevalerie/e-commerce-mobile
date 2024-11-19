@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:e_commerce/screens/menu.dart';
 import 'package:e_commerce/screens/candyentry_form.dart';
+import 'package:e_commerce/screens/list_candyentry.dart';
 
 class LeftDrawer extends StatelessWidget {
   const LeftDrawer({super.key});
@@ -63,6 +64,17 @@ class LeftDrawer extends StatelessWidget {
                 );
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.add_reaction_rounded),
+              title: const Text('Daftar Candy'),
+              onTap: () {
+                  // Route menu ke halaman mood
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CandyEntryPage()),
+                  );
+              },
+          ),
         ],
       ),
     );

@@ -1,5 +1,10 @@
+import 'dart:convert';
+
+import 'package:e_commerce/screens/menu.dart';
 import 'package:flutter/material.dart';
 import 'package:e_commerce/widgets/left_drawer.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:provider/provider.dart';
 
 class CandyEntryFormPage extends StatefulWidget {
   const CandyEntryFormPage({super.key});
@@ -13,14 +18,16 @@ class _CandyEntryFormPageState extends State<CandyEntryFormPage> {
   String _name = "";
 	String _description = "";
 	int _price = 0;
+  int _sweetness = 0;
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
     return Scaffold(
       appBar: AppBar(
         title: const Center(
           child: Text(
-            'Form Tambah Mood Kamu Hari ini',
+            'Form Tambah Candy',
           ),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
@@ -33,13 +40,12 @@ class _CandyEntryFormPageState extends State<CandyEntryFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: TextFormField(
                   decoration: InputDecoration(
-                    hintText: "Name",
-                    labelText: "Name",
+                    hintText: "Candy Name",
+                    labelText: "Candy Name",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(5.0),
                     ),
@@ -57,10 +63,12 @@ class _CandyEntryFormPageState extends State<CandyEntryFormPage> {
                     // Panjang minimal dan maksimal
                     int minLength = 3; // panjang minimum
                     int maxLength = 25; // panjang maksimum
+                    
                     // Cek panjang minimum
                     if (value.length < minLength) {
                       return "Name must have at least $minLength characters!";
                     }
+                    
                     // Cek panjang maksimum
                     if (value.length > maxLength) {
                       return "Name must not exceed $maxLength characters!";
@@ -117,7 +125,37 @@ class _CandyEntryFormPageState extends State<CandyEntryFormPage> {
                       return "Price should be a number!";
                     }
                     if (int.tryParse(value)! < 0) {
-                      return "Amount must not be negative!";
+                      return "Price must not be negative!";
+                    }
+                    return null;
+                  },
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    hintText: "Sweetness",
+                    labelText: "Sweetness",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(5.0),
+                    ),
+                  ),
+                  onChanged: (String? value) {
+                    setState(() {
+                      _sweetness = int.tryParse(value!) ?? 0;
+                    });
+                  },
+                  validator: (String? value) {
+                    if (value == null || value.isEmpty) {
+                      return "Sweetness tidak boleh kosong!";
+                    }
+                    if (int.tryParse(value) == null) {
+                      return "Sweetness harus berupa angka!";
+                    }
+                    if (int.tryParse(value)! < 0) {
+                    return "Sweetness tidak boleh negatif!";
                     }
                     return null;
                   },
@@ -133,37 +171,39 @@ class _CandyEntryFormPageState extends State<CandyEntryFormPage> {
                       backgroundColor: MaterialStateProperty.all(
                           Theme.of(context).colorScheme.primary),
                     ),
-                    onPressed: () {
+                    onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Mood berhasil tersimpan'),
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Name: $_name'),
-                                    Text('Price: $_price'),
-                                    Text('Description: $_description'),
-                                  ],
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  child: const Text('OK'),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _formKey.currentState!.reset();
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }      
-                    },
+                          // Kirim ke Django dan tunggu respons
+                          final response = await request.postJson(
+                              "http://127.0.0.1:8000/create-flutter/",
+                              jsonEncode(<String, String>{
+                                  'name': _name,
+                                  'price': _price.toString(),
+                                  'description': _description,
+                                  'sweetness': _sweetness.toString(),
+                              }),
+                          );
+                          if (context.mounted) {
+                            if (response['status'] == 'success') {
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(const SnackBar(
+                                content: Text("Item baru berhasil disimpan!"),
+                                ));
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => MyHomePage()),
+                                );
+                            } else {
+                                ScaffoldMessenger.of(context)
+                                    .showSnackBar(const SnackBar(
+                                    content:
+                                        Text("Terdapat kesalahan, silakan coba lagi."),
+                                )
+                              );
+                            }
+                          }
+                        }
+                      },
                     child: const Text(
                       "Save",
                       style: TextStyle(color: Colors.white),
@@ -172,7 +212,7 @@ class _CandyEntryFormPageState extends State<CandyEntryFormPage> {
                 ),
               ),
             ],
-          )
+          ),
         ),
       ),
     );
